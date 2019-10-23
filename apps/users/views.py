@@ -1,6 +1,7 @@
 import re
 
 from django import http
+from django.contrib.auth.views import login
 from django.db import DatabaseError
 from django.http import HttpResponseBadRequest
 from django.shortcuts import render, redirect
@@ -10,6 +11,7 @@ from django.urls import reverse
 from django.views import View
 
 from apps.users.models import User
+from utils.response_code import RETCODE
 
 
 class RegisterView(View):
@@ -63,9 +65,43 @@ class RegisterView(View):
 
         # 3, 导入数据库中
         try:
-            User.objects.create_user(username=username, password=password, mobile=mobile)
+            user = User.objects.create_user(username=username, password=password, mobile=mobile)
         except DatabaseError:
             return render(request, 'register.html', {'register_errmsg': '注册失败'})
 
+        # 实现状态保持
+        login(request, user)
+
         # 4, 返回结果
         return redirect(reverse('index:index'))
+
+
+class UsernameCountView(View):
+    """判断用户名是否重复使用"""
+
+    def get(self, request, username):
+        """
+
+        :param request:
+        :param username:
+        :return:
+        """
+        count = User.objects.filter(username=username).count()
+        return http.JsonResponse({'code':RETCODE.OK, 'errmsg': 'OK', 'count': count})
+
+
+
+class MobileCountView(View):
+    """判断手机号是否重复注册"""
+
+    def get(self, request, mobile):
+        """
+
+        :param request:
+        :param mobile:
+        :return:
+        """
+        count= User.objects.filter(mobile=mobile).count()
+        return http.JsonResponse({'code':RETCODE.OK, 'errmsg': 'OK', 'count': count})
+
+
