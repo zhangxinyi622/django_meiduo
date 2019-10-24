@@ -2,7 +2,7 @@ import re
 
 from django import http
 from django.contrib.auth import authenticate
-from django.contrib.auth.views import login
+from django.contrib.auth.views import login, logout
 from django.db import DatabaseError
 from django.http import HttpResponseBadRequest
 from django.shortcuts import render, redirect
@@ -157,7 +157,34 @@ class  Loginview(View):
             # 记住用户: None表示两周后过期
             request.session.set_expiry(None)
         # 响应登录结果
-        return redirect(reverse('index:index'))
+        response = redirect(reverse('index:index'))
+
+
+        # 注册是用户名写入到cookie,有限期15天
+        response.set_cookie('username', user.username, max_age=3600 * 24 * 15)
+
+        return response
+
+
+class LoginOut(View):
+    """退出登录"""
+
+    def get(self, request):
+        """
+        实现退出登录, 清除session
+        :param request:
+        :return:
+        """
+        # 清除session
+        logout(request)
+
+        # 退出登录, 重定向到登录页面
+        response = redirect(reverse('index:index'))
+
+        # 退出登录时清除cookie中的username
+        response.delete_cookie('username')
+
+        return response
 
 
 
